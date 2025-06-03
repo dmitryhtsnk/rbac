@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    environment {
+        IMAGE_NAME = "spring-boot-app:latest"
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -34,20 +38,16 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                script {
-                    sh 'eval $(minikube docker-env)' // важливо!
-                    sh 'docker build -t spring-boot-app:latest .'
-                }
+                sh 'docker build -t $IMAGE_NAME .'
+                sh 'docker image ls'
             }
         }
 
         stage('Deploy to Minikube') {
             steps {
-                script {
-                    sh 'kubectl apply -f k8s/deployment.yaml'
-                    sh 'kubectl apply -f k8s/service.yaml'
-                    sh 'kubectl rollout status deployment/spring-boot-app --watch=true'
-                }
+                sh 'kubectl apply -f k8s/deployment.yaml'
+                sh 'kubectl apply -f k8s/service.yaml'
+                sh 'kubectl rollout status deployment/spring-boot-app --watch=true'
             }
         }
     }
