@@ -14,19 +14,19 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh './mvnw clean compile'
+                sh 'mvn clean compile'
             }
         }
 
         stage('Test') {
             steps {
-                sh './mvnw test'
+                sh 'mvn test'
             }
         }
 
         stage('Package') {
             steps {
-                sh './mvnw package -DskipTests'
+                sh 'mvn package -DskipTests'
             }
         }
 
@@ -39,9 +39,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    // Потрібно попередньо в Jenkins виконати: eval $(minikube docker-env)
                     sh "docker build -t ${IMAGE_NAME}:latest ."
-                    echo "Docker image ${IMAGE_NAME}:latest built."
+                    echo "✅ Docker image ${IMAGE_NAME}:latest built."
                 }
             }
         }
@@ -49,12 +48,12 @@ pipeline {
         stage('Deploy to Minikube') {
             steps {
                 script {
-                    // Упевнись, що kubectl налаштований на minikube (kubectl config use-context minikube)
                     sh 'kubectl apply -f k8s/deployment.yaml'
                     sh 'kubectl apply -f k8s/service.yaml'
-
-                    // Очікування, поки деплой завершиться
-                    sh 'kubectl rollout status deployment/spring-boot-app --watch=true'
+                    timeout(time: 5, unit: 'MINUTES') {
+                        sh 'kubectl rollout status deployment/spring-boot-app --watch=true'
+                    }
+                    echo "🚀 Application deployed to Minikube."
                 }
             }
         }
@@ -62,10 +61,10 @@ pipeline {
 
     post {
         success {
-            echo '✅ Pipeline successfully completed and deployed to Minikube!'
+            echo '✅ Pipeline successfully completed!'
         }
         failure {
-            echo '❌ Build or Deployment failed!'
+            echo '❌ Build failed!'
         }
     }
 }
