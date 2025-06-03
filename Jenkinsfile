@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "spring-boot-app"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -14,19 +10,19 @@ pipeline {
 
         stage('Build') {
             steps {
-                sh 'mvn clean compile'
+                sh './mvnw clean compile'
             }
         }
 
         stage('Test') {
             steps {
-                sh 'mvn test'
+                sh './mvnw test'
             }
         }
 
         stage('Package') {
             steps {
-                sh 'mvn package -DskipTests'
+                sh './mvnw package -DskipTests'
             }
         }
 
@@ -39,8 +35,8 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 script {
-                    sh "docker build -t ${IMAGE_NAME}:latest ."
-                    echo "✅ Docker image ${IMAGE_NAME}:latest built."
+                    sh 'eval $(minikube docker-env)' // важливо!
+                    sh 'docker build -t spring-boot-app:latest .'
                 }
             }
         }
@@ -50,10 +46,7 @@ pipeline {
                 script {
                     sh 'kubectl apply -f k8s/deployment.yaml'
                     sh 'kubectl apply -f k8s/service.yaml'
-                    timeout(time: 5, unit: 'MINUTES') {
-                        sh 'kubectl rollout status deployment/spring-boot-app --watch=true'
-                    }
-                    echo "🚀 Application deployed to Minikube."
+                    sh 'kubectl rollout status deployment/spring-boot-app --watch=true'
                 }
             }
         }
