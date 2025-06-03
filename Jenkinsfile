@@ -1,10 +1,6 @@
 pipeline {
     agent any
 
-    environment {
-        IMAGE_NAME = "spring-boot-app:latest"
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -30,34 +26,31 @@ pipeline {
             }
         }
 
-        stage('Archive Artifacts') {
+        stage('Build Docker Image') {
             steps {
-                archiveArtifacts artifacts: 'target/*.jar', fingerprint: true
+                sh 'docker build -t spring-boot-app .'
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Load to Minikube') {
             steps {
-                sh 'docker build -t $IMAGE_NAME .'
-                sh 'docker image ls'
+                sh 'minikube image load spring-boot-app'
             }
         }
 
         stage('Deploy to Minikube') {
             steps {
-                sh 'kubectl apply -f k8s/deployment.yaml'
-                sh 'kubectl apply -f k8s/service.yaml'
-                sh 'kubectl rollout status deployment/spring-boot-app --watch=true'
+                sh 'kubectl apply -f k8s/'
             }
         }
     }
 
     post {
         success {
-            echo '✅ Pipeline successfully completed!'
+            echo '✅ Pipeline completed successfully!'
         }
         failure {
-            echo '❌ Build failed!'
+            echo '❌ Pipeline failed!'
         }
     }
-
+}
